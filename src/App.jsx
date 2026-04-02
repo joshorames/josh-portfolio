@@ -1,625 +1,766 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import "./App.css";
+import { SMALL_VARIANTS } from "./data/gaugePresets";
+import { makeGauge } from "./utils/gaugeFactory";
+import GaugeRenderer from "./components/GaugeRenderer";
+import NumberField from "./components/fields/NumberField";
+import TextField from "./components/fields/TextField";
+import ColorField from "./components/fields/ColorField";
 
 export default function App() {
-  const [water, setWater] = useState(72);
-  const [temp, setTemp] = useState(68);
-  const [lightCycle, setLightCycle] = useState(84);
+  const [activePage, setActivePage] = useState("home");
+  const [gauges, setGauges] = useState(() => {
+    const saved = localStorage.getItem("webGaugeDashboardV1");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+    return [
+      makeGauge("small", { name: "Oil", variant: "oil", x: 190, y: 180 }),
+      makeGauge("small", {
+        name: "Water",
+        variant: "water",
+        ...SMALL_VARIANTS.water,
+        x: 190,
+        y: 430,
+      }),
+      makeGauge("small", {
+        name: "Volts",
+        variant: "volts",
+        ...SMALL_VARIANTS.volts,
+        x: 920,
+        y: 180,
+      }),
+      makeGauge("small", {
+        name: "Fuel",
+        variant: "fuel",
+        ...SMALL_VARIANTS.fuel,
+        x: 920,
+        y: 430,
+      }),
+      makeGauge("speedometer", { name: "Speed", x: 395, y: 310 }),
+      makeGauge("rpm", { name: "RPM", x: 715, y: 310 }),
+    ];
+  });
+
+  const [selectedId, setSelectedId] = useState(null);
+  const [dragState, setDragState] = useState(null);
+
+  const selectedGauge = gauges.find((g) => g.id === selectedId) || null;
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setWater((w) => Math.max(50, Math.min(90, w + (Math.random() * 6 - 3))));
-      setTemp((t) => Math.max(65, Math.min(75, t + (Math.random() * 2 - 1))));
-      setLightCycle((l) => Math.max(60, Math.min(100, l + (Math.random() * 8 - 4))));
-    }, 2000);
+    if (!selectedId && gauges.length) setSelectedId(gauges[0].id);
+  }, [gauges, selectedId]);
 
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => {
+    localStorage.setItem("webGaugeDashboardV1", JSON.stringify(gauges));
+  }, [gauges]);
 
-  const projects = [
-    {
-      title: "Hydroponics Tower",
-      category: "3D Printing + Hydroponics",
-      status: "Live build",
-      description:
-        "A custom grow tower system for compact indoor growing with practical plant spacing, printable parts, cleaner plumbing, and a polished maker look.",
-      tags: ["Hydroponics", "CAD", "3D Printing", "DIY Systems"],
-      accent: "from-emerald-400/30 to-cyan-400/20",
-      metric: "Modular grow design",
-    },
-    {
-      title: "Custom Gauge Dashboard",
-      category: "Python + UI Engineering",
-      status: "In progress",
-      description:
-        "A customizable digital gauge cluster inspired by classic automotive styling, with draggable gauges, scalable layouts, and refined visuals for real dashboard displays.",
-      tags: ["Python", "PySide6", "UI Design", "Automotive"],
-      accent: "from-orange-400/30 to-amber-400/20",
-      metric: "Interactive UI system",
-    },
-    {
-      title: "ESP32 / Pico Automation",
-      category: "Embedded + IoT",
-      status: "Field tested",
-      description:
-        "Wi-Fi setup portals, sensor-triggered actions, timers, relays, and hardware control flows for smart devices that solve real problems beyond the screen.",
-      tags: ["ESP32", "Pico W", "MicroPython", "IoT"],
-      accent: "from-sky-400/30 to-indigo-400/20",
-      metric: "Sensor-driven automation",
-    },
-    {
-      title: "NFC + LED Interactive Builds",
-      category: "Embedded Prototyping",
-      status: "Prototype",
-      description:
-        "Interactive systems combining NFC readers, LEDs, custom logic, and audio feedback to create polished physical experiences with personality.",
-      tags: ["NFC", "WS2812", "Electronics", "Prototyping"],
-      accent: "from-fuchsia-400/30 to-violet-400/20",
-      metric: "Physical interaction design",
-    },
-  ];
-
-  const skills = [
-    "React",
-    "Tailwind",
-    "Python",
-    "MicroPython",
-    "ESP32",
-    "Raspberry Pi Pico W",
-    "3D Printing",
-    "CAD / FreeCAD",
-    "UI Design",
-    "IoT Systems",
-    "Automation",
-    "Hardware Prototyping",
-  ];
-
-  const contactLinks = [
-    { label: "Email Me", value: "joshorames2@gmail.com", href: "mailto:joshorames2@gmail.com" },
-    { label: "GitHub", value: "github.com/joshorames", href: "https://github.com/joshorames?tab=repositories" },
-    { label: "Resume", value: "Add resume PDF later", href: "#" },
-  ];
-
-  const buildProcess = [
-    "Identify a real-world problem worth solving",
-    "Prototype hardware and software together",
-    "Iterate until it feels practical, clean, and reliable",
-    "Polish the interface so the project feels complete",
-  ];
-
-  const currentBuilds = [
-    "Smart hydroponics monitoring systems",
-    "Custom dashboard interfaces",
-    "Embedded automation builds",
-  ];
-
-  const photoPlaceholders = [
-    {
-      title: "Hydroponics Tower Build",
-      note: "Replace with /tower.jpg in your public folder.",
-      image: "/tower.jpg",
-    },
-    {
-      title: "Gauge Dashboard UI",
-      note: "Replace with /dashboard.jpg in your public folder.",
-      image: "/dashboard.jpg",
-    },
-    {
-      title: "ESP32 / Pico Project",
-      note: "Replace with /esp32.jpg in your public folder.",
-      image: "/esp32.jpg",
-    },
-  ];
-
-  const fadeUp = {
-    initial: { opacity: 0, y: 24 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, amount: 0.2 },
-    transition: { duration: 0.6, ease: "easeOut" },
+  const updateGauge = (id, patch) => {
+    setGauges((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
   };
 
+  const addGauge = (type) => {
+    let gauge = makeGauge(type, {
+      x: 540,
+      y: 300,
+      zIndex: gauges.length + 1,
+    });
+
+    if (type === "small") {
+      gauge = {
+        ...gauge,
+        ...SMALL_VARIANTS.oil,
+        variant: "oil",
+        name: "Oil",
+      };
+    }
+
+    setGauges((prev) => [...prev, gauge]);
+    setSelectedId(gauge.id);
+    setActivePage("builder");
+  };
+
+  const duplicateGauge = () => {
+    if (!selectedGauge) return;
+    const copy = {
+      ...selectedGauge,
+      id: crypto.randomUUID?.() || Math.random().toString(36).slice(2, 10),
+      name: `${selectedGauge.name} Copy`,
+      x: selectedGauge.x + 32,
+      y: selectedGauge.y + 32,
+      zIndex: gauges.length + 1,
+    };
+    setGauges((prev) => [...prev, copy]);
+    setSelectedId(copy.id);
+  };
+
+  const deleteGauge = () => {
+    if (!selectedGauge) return;
+    setGauges((prev) => prev.filter((g) => g.id !== selectedGauge.id));
+    setSelectedId(null);
+  };
+
+  const resetLayout = () => {
+    localStorage.removeItem("webGaugeDashboardV1");
+    window.location.reload();
+  };
+
+  const handlePointerMove = (e) => {
+    if (!dragState) return;
+    const rect = dragState.bounds;
+    const x = e.clientX - rect.left - dragState.offsetX;
+    const y = e.clientY - rect.top - dragState.offsetY;
+    updateGauge(dragState.id, { x, y });
+  };
+
+  const handlePointerUp = () => setDragState(null);
+
+  useEffect(() => {
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  });
+
+  const startDrag = (e, id) => {
+    const bounds = e.currentTarget.parentElement.getBoundingClientRect();
+    const gauge = gauges.find((g) => g.id === id);
+    if (!gauge) return;
+
+    setSelectedId(id);
+    setDragState({
+      id,
+      bounds,
+      offsetX: e.clientX - bounds.left - gauge.x,
+      offsetY: e.clientY - bounds.top - gauge.y,
+    });
+  };
+
+  const exportJson = JSON.stringify(gauges, null, 2);
+
   return (
-    <div className="min-h-screen w-full overflow-hidden bg-[#071018] text-white relative">
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#071018] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_30%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.18),transparent_28%),radial-gradient(circle_at_bottom,rgba(249,115,22,0.10),transparent_26%)]" />
       <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.2)_1px,transparent_1px)] [background-size:42px_42px]" />
 
-      <main className="relative z-10">
-        <section className="w-full px-6 pt-8 pb-16 md:px-10 lg:px-16">
-          <div className="mx-auto max-w-7xl rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_0_80px_rgba(16,185,129,0.08)]">
-            <div className="grid gap-10 p-6 md:p-10 lg:grid-cols-[1.15fr_0.85fr] lg:p-14">
-              <div className="flex flex-col justify-center">
-                <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-200">
-                  <span className="h-2 w-2 rounded-full bg-emerald-300 animate-pulse" />
-                  Available for projects and opportunities
-                </div>
+      <main className="relative z-10 min-h-screen">
+        <div className="sticky top-0 z-50 border-b border-white/10 bg-[#071018]/80 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4">
+            <div>
+              <div className="text-lg font-black text-white">Josh Orames</div>
+              <div className="text-xs text-slate-400"></div>
+            </div>
 
-                <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl lg:text-7xl">
-                  I build
-                  <span className="block bg-gradient-to-r from-emerald-300 via-cyan-300 to-orange-300 bg-clip-text text-transparent">
-                    real devices, not just mockups
-                  </span>
-                </h1>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setActivePage("home")}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                  activePage === "home"
+                    ? "bg-emerald-300 text-slate-950"
+                    : "bg-white/5 text-white hover:bg-white/10"
+                }`}
+              >
+                Home
+              </button>
 
-                <p className="mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-                  I design and build practical systems that blend hardware, software, and interface
-                  design — from hydroponics towers and embedded automation to custom dashboards and
-                  interactive prototypes.
-                </p>
+              <button
+                onClick={() => setActivePage("builder")}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                  activePage === "builder"
+                    ? "bg-emerald-300 text-slate-950"
+                    : "bg-white/5 text-white hover:bg-white/10"
+                }`}
+              >
+                Gauge Builder
+              </button>
 
-                <div className="mt-8 flex flex-wrap gap-4">
-                  <a
-                    href="#projects"
-                    className="rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg transition hover:-translate-y-0.5"
-                  >
-                    View Projects
-                  </a>
-                  <a
-                    href="#contact"
-                    className="rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-                  >
-                    Let’s Build Something
-                  </a>
-                </div>
-
-                <div className="mt-10 grid max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
-                  {[
-                    ["Projects", "10+"],
-                    ["Systems", "Hardware + Software"],
-                    ["Focus", "Useful Builds"],
-                    ["Style", "Modern + Practical"],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <div className="text-lg font-bold text-white">{value}</div>
-                      <div className="mt-1 text-sm text-slate-400">{label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="absolute -left-6 top-10 h-24 w-24 rounded-full bg-emerald-400/20 blur-3xl" />
-                <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-sky-400/20 blur-3xl" />
-                <div className="absolute bottom-10 left-10 h-20 w-20 rounded-full bg-orange-400/20 blur-3xl" />
-
-                <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/70 p-5 shadow-2xl">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-400">Live builder snapshot</p>
-                      <h2 className="text-xl font-bold">Josh Portfolio</h2>
-                    </div>
-                    <div className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
-                      Active
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4">
-                    <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 p-5">
-                      <div className="flex items-end justify-between gap-4">
-                        <div>
-                          <p className="text-sm text-slate-400">Current focus</p>
-                          <p className="mt-2 text-2xl font-black text-white">Hydroponics + IoT</p>
-                          <p className="mt-2 text-sm text-slate-400">
-                            Building systems that actually live in the real world.
-                          </p>
-                        </div>
-                        <div className="relative h-24 w-24 rounded-full border-8 border-emerald-300/20 border-t-emerald-300 border-r-cyan-300 animate-spin [animation-duration:6s]">
-                          <div className="absolute inset-4 rounded-full border border-white/10 bg-slate-950/80" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-sm text-slate-400">Build style</p>
-                        <p className="mt-2 text-lg font-bold">Clean, custom, functional</p>
-                      </div>
-                      <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-sm text-slate-400">What stands out</p>
-                        <p className="mt-2 text-lg font-bold">Real devices, not slides</p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-3xl border border-orange-300/15 bg-orange-300/5 p-4">
-                      <p className="text-sm text-orange-100/70">Why people should email you</p>
-                      <p className="mt-2 text-base leading-7 text-orange-50">
-                        For prototypes, custom builds, automation ideas, embedded systems,
-                        dashboards, or unusual concepts that need both design and execution.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        <motion.section {...fadeUp} className="w-full px-6 py-6 md:px-10 lg:px-16">
-          <div className="mx-auto max-w-7xl rounded-[28px] border border-white/10 bg-white/[0.04] p-6 md:p-8">
-            <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-cyan-300/80">How I build</p>
-                <h2 className="mt-2 text-3xl font-black text-white">My process</h2>
-                <div className="mt-6 space-y-3">
-                  {buildProcess.map((item, index) => (
-                    <div
-                      key={item}
-                      className="flex items-start gap-4 rounded-2xl border border-white/10 bg-slate-950/50 p-4"
+        {activePage === "home" && (
+          <div className="mx-auto max-w-[1400px] px-6 py-8">
+            <section className="rounded-[32px] border border-white/10 bg-white/5 p-8 md:p-12">
+              <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+                <div>
+                  <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-200">
+                    <span className="h-2 w-2 rounded-full bg-emerald-300 animate-pulse" />
+                    Available for projects and opportunities
+                  </div>
+
+                  {/* <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl lg:text-7xl">
+                    I build
+                    <span className="block bg-gradient-to-r from-emerald-300 via-cyan-300 to-orange-300 bg-clip-text text-transparent">
+                      real devices, not just mockups
+                    </span>
+                  </h1>
+
+                  <p className="mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+                    Explore my portfolio and then jump into the custom gauge
+                    builder page to try a browser-based version of the dashboard
+                    system inspired by my PySide app.
+                  </p> */}
+
+                  <div className="mt-8 flex flex-wrap gap-4">
+                    <button
+                      onClick={() => setActivePage("builder")}
+                      className="rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg transition hover:-translate-y-0.5"
                     >
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-300 to-cyan-300 text-sm font-black text-slate-950">
-                        {index + 1}
-                      </div>
-                      <p className="text-slate-200">{item}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                      Open Gauge Builder
+                    </button>
 
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-orange-300/80">Currently building</p>
-                <h2 className="mt-2 text-3xl font-black text-white">What I’m working on now</h2>
-                <div className="mt-6 grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                  {currentBuilds.map((item) => (
-                    <div key={item} className="rounded-2xl border border-white/10 bg-slate-950/50 p-5">
-                      <div className="mb-3 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
-                        In progress
-                      </div>
-                      <p className="text-base font-semibold text-white">{item}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        <motion.section {...fadeUp} className="w-full px-6 py-6 md:px-10 lg:px-16">
-          <div className="mx-auto max-w-7xl rounded-[28px] border border-white/10 bg-white/[0.04] p-6 md:p-8">
-            <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-cyan-300/80">Live demo</p>
-                <h2 className="mt-2 text-3xl font-black text-white sm:text-4xl">
-                  Interactive system snapshot
-                </h2>
-                <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                  This section makes the site feel like a real product. It shows the kinds of
-                  dashboards, sensors, live states, and control systems I build.
-                </p>
-
-                <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                  {[
-                    ["Water Level", `${Math.round(water)}%`, "Tank healthy"],
-                    ["Pump State", "ON", "Automation active"],
-                    ["Grow Temp", `${Math.round(temp)}°F`, "Stable environment"],
-                  ].map(([label, value, note]) => (
-                    <motion.div
-                      key={label}
-                      animate={{ y: [0, -4, 0] }}
-                      transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-                      className="rounded-3xl border border-white/10 bg-slate-950/60 p-5"
-                    >
-                      <p className="text-sm text-slate-400">{label}</p>
-                      <p className="mt-2 text-3xl font-black text-white">{value}</p>
-                      <p className="mt-2 text-sm text-emerald-200">{note}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-6">
-                <div className="mb-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400">System dashboard demo</p>
-                    <h3 className="text-xl font-bold text-white">Hydroponics Monitor</h3>
-                  </div>
-                  <motion.div
-                    animate={{ opacity: [0.45, 1, 0.45] }}
-                    transition={{ duration: 1.8, repeat: Infinity }}
-                    className="flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200"
-                  >
-                    <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                    Live
-                  </motion.div>
-                </div>
-
-                <div className="space-y-5">
-                  <div>
-                    <div className="mb-2 flex items-center justify-between text-sm text-slate-300">
-                      <span>Reservoir</span>
-                      <span>{Math.round(water)}%</span>
-                    </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-white/10">
-                      <motion.div
-                        animate={{ width: `${Math.round(water)}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-cyan-300"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex items-center justify-between text-sm text-slate-300">
-                      <span>Light Cycle</span>
-                      <span>{Math.round(lightCycle)}%</span>
-                    </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-white/10">
-                      <motion.div
-                        animate={{ width: `${Math.round(lightCycle)}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="h-full rounded-full bg-gradient-to-r from-orange-300 to-amber-300"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex items-center justify-between text-sm text-slate-300">
-                      <span>Temperature Stability</span>
-                      <span>{Math.round(((temp - 65) / 10) * 100)}%</span>
-                    </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-white/10">
-                      <motion.div
-                        animate={{ width: `${Math.round(((temp - 65) / 10) * 100)}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="h-full rounded-full bg-gradient-to-r from-sky-300 to-indigo-300"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-slate-400">Flow status</p>
-                        <p className="mt-1 text-lg font-bold text-white">Nominal</p>
-                      </div>
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-                        className="relative h-16 w-16 rounded-full border-4 border-cyan-300/20 border-t-cyan-300 border-r-emerald-300"
-                      >
-                        <div className="absolute inset-2 rounded-full bg-slate-950" />
-                      </motion.div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        <motion.section {...fadeUp} className="w-full px-6 py-6 md:px-10 lg:px-16">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 md:p-8">
-                <p className="text-sm uppercase tracking-[0.2em] text-emerald-300/80">Project gallery</p>
-                <h2 className="mt-2 text-3xl font-black text-white sm:text-4xl">
-                  Show the real builds
-                </h2>
-                <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                  Add real photos here to make the site hit harder. Photos of actual builds,
-                  wiring, prototypes, screens, and finished results make the portfolio much more
-                  credible and memorable.
-                </p>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                {photoPlaceholders.map((item) => (
-                  <div
-                    key={item.title}
-                    className="group overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/50 p-4 transition duration-300 hover:-translate-y-1 hover:border-white/20"
-                  >
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-[20px] border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800">
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                          const fallback = e.currentTarget.nextElementSibling;
-                          if (fallback) fallback.style.display = "flex";
-                        }}
-                      />
-                      <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 text-center">
-                        <div>
-                          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xl text-slate-300">
-                            +
-                          </div>
-                          <p className="px-4 text-sm font-semibold text-white">{item.title}</p>
-                        </div>
-                      </div>
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent p-4">
-                        <p className="text-sm font-semibold text-white">{item.title}</p>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-400">{item.note}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-emerald-300/80">Featured projects</p>
-                <h2 className="mt-2 text-3xl font-black text-white sm:text-4xl">
-                  Projects people can reach out about
-                </h2>
-              </div>
-            </div>
-
-            <div id="projects" className="grid gap-6 md:grid-cols-2">
-              {projects.map((project) => (
-                <div
-                  key={project.title}
-                  className="group relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] p-6 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
-                >
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${project.accent} opacity-0 blur-2xl transition duration-500 group-hover:opacity-100`}
-                  />
-                  <div className="relative z-10">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-                        {project.category}
-                      </div>
-                      <div className="inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
-                        {project.status}
-                      </div>
-                    </div>
-                    <h3 className="mt-4 text-2xl font-bold text-white">{project.title}</h3>
-                    <p className="mt-2 text-sm font-medium text-cyan-200">{project.metric}</p>
-                    <p className="mt-3 text-base leading-7 text-slate-300">{project.description}</p>
-
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {project.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full border border-white/10 bg-slate-950/60 px-3 py-1 text-xs text-slate-300"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="mt-6 flex items-center justify-between">
-                      <span className="text-sm font-medium text-emerald-200">
-                        Interested in this kind of work?
-                      </span>
-                      <a
-                        href="#contact"
-                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                      >
-                        Email Me
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </motion.section>
-
-        <motion.section {...fadeUp} className="w-full px-6 py-20 md:px-10 lg:px-16">
-          <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.8fr_1.2fr]">
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-7">
-              <p className="text-sm uppercase tracking-[0.2em] text-cyan-300/80">Why this matters</p>
-              <h2 className="mt-3 text-3xl font-black">More than a portfolio</h2>
-              <p className="mt-4 text-base leading-7 text-slate-300">
-                This site is designed to show employers and collaborators that I do more than talk
-                about ideas — I design, prototype, code, test, and build things that actually
-                exist.
-              </p>
-
-              <div className="mt-8 space-y-4">
-                {[
-                  "Show practical, real-world problem solving",
-                  "Highlight hardware + software crossover",
-                  "Create easy ways for companies or clients to contact me",
-                  "Make projects feel premium and memorable",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-start gap-3 rounded-2xl border border-white/10 bg-slate-950/50 p-4"
-                  >
-                    <div className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-300" />
-                    <p className="text-slate-200">{item}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-7">
-              <p className="text-sm uppercase tracking-[0.2em] text-orange-300/80">Tech and capabilities</p>
-              <h2 className="mt-3 text-3xl font-black">What I can be hired for</h2>
-
-              <div className="mt-8 flex flex-wrap gap-3">
-                {skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm font-medium text-slate-200 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:text-white"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                {[
-                  ["Custom Builds", "Have an idea that needs prototyping?"],
-                  ["UI + Dashboards", "Need a polished interface for hardware or data?"],
-                  ["Automation", "Need sensors, triggers, or control systems?"],
-                ].map(([title, body]) => (
-                  <div key={title} className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
-                    <h3 className="text-lg font-bold text-white">{title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-400">{body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        <motion.section {...fadeUp} id="contact" className="w-full px-6 pb-20 md:px-10 lg:px-16">
-          <div className="mx-auto max-w-7xl rounded-[32px] border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8 shadow-[0_0_70px_rgba(59,130,246,0.08)] md:p-10">
-            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-emerald-300/80">Contact</p>
-                <h2 className="mt-3 text-3xl font-black sm:text-4xl">Let’s build something impressive</h2>
-                <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
-                  Interested in a custom build, collaboration, prototype, dashboard, automation
-                  idea, or something unusual? Reach out and tell me what you have in mind.
-                </p>
-
-                <div className="mt-8 space-y-4">
-                  {contactLinks.map((item) => (
                     <a
-                      key={item.label}
-                      href={item.href}
-                      className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-5 py-4 transition hover:bg-white/10"
+                      href="https://github.com/joshorames/CustomGaugeDashboard"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
                     >
-                      <div>
-                        <div className="text-sm text-slate-400">{item.label}</div>
-                        <div className="mt-1 font-semibold text-white">{item.value}</div>
-                      </div>
-                      <div className="text-slate-400">→</div>
+                      View PySide Repo
                     </a>
-                  ))}
+                  </div>
+                </div>
+
+                <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5">
+                  <p className="text-sm text-slate-400">Featured build</p>
+                  <p className="mt-3 text-2xl font-bold text-white">
+                    Custom Gauge Dashboard
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                    A configurable dashboard system with draggable gauges,
+                    custom styling, and saved layouts. The builder page lets you
+                    experiment with a web version directly in the browser.
+                  </p>
                 </div>
               </div>
+            </section>
+          </div>
+        )}
 
-              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
-                <div className="mb-4 rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-4 text-sm leading-6 text-cyan-100">
-                  Have an idea for a product, prototype, automation, or one-off system? Send it over.
+        {activePage === "builder" && (
+          <div className="mx-auto grid max-w-[1600px] gap-6 px-6 py-6 xl:grid-cols-[1.1fr_0.55fr]">
+            <motion.section
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-[32px] border border-white/10 bg-white/[0.04] p-4 md:p-6"
+            >
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.2em] text-cyan-300/80">
+                    Canvas
+                  </p>
+                  <h2 className="mt-1 text-2xl font-black">
+                    Drag gauges, click to edit
+                  </h2>
                 </div>
-                <div className="grid gap-4">
-                  <div>
-                    <label className="mb-2 block text-sm text-slate-300">Name</label>
-                    <input
-                      placeholder="Your name"
-                      className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/40"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm text-slate-300">Email</label>
-                    <input
-                      placeholder="name@example.com"
-                      className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/40"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm text-slate-300">Project idea / message</label>
-                    <textarea
-                      rows={6}
-                      placeholder="Tell me what you want to build, improve, automate, or prototype..."
-                      className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/40"
-                    />
-                  </div>
 
-                  <button className="rounded-2xl bg-gradient-to-r from-emerald-300 to-cyan-300 px-5 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.01]">
-                    Send Message
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => addGauge("speedometer")}
+                    className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900"
+                  >
+                    Add Speed
+                  </button>
+                  <button
+                    onClick={() => addGauge("rpm")}
+                    className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Add RPM
+                  </button>
+                  <button
+                    onClick={() => addGauge("small")}
+                    className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Add Oil
                   </button>
                 </div>
               </div>
+
+              <div
+                className="relative h-[760px] overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/70"
+                onClick={() => setSelectedId(null)}
+              >
+                {gauges.map((g) => (
+                  <GaugeRenderer
+                    key={g.id}
+                    config={g}
+                    isSelected={g.id === selectedId}
+                    onSelect={setSelectedId}
+                    onDragStart={startDrag}
+                  />
+                ))}
+              </div>
+            </motion.section>
+
+            <motion.aside
+              initial={{ opacity: 0, x: 18 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5"
+            >
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.2em] text-emerald-300/80">
+                    Settings
+                  </p>
+                  <h2 className="mt-1 text-2xl font-black">Selected gauge</h2>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={duplicateGauge}
+                    className="rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold"
+                  >
+                    Duplicate
+                  </button>
+                  <button
+                    onClick={deleteGauge}
+                    className="rounded-xl bg-red-500/20 px-3 py-2 text-sm font-semibold text-red-200"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+
+              {!selectedGauge ? (
+                <p className="text-slate-400">Select a gauge on the canvas.</p>
+              ) : (
+                <div className="space-y-5">
+                  <TextField
+                    label="Name"
+                    value={selectedGauge.name}
+                    onChange={(v) => updateGauge(selectedGauge.id, { name: v })}
+                  />
+
+                  <TextField
+                    label="Display label"
+                    value={selectedGauge.label}
+                    onChange={(v) => updateGauge(selectedGauge.id, { label: v })}
+                  />
+
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Type
+                    </label>
+                    <select
+                      value={selectedGauge.type}
+                      onChange={(e) => {
+                        const nextType = e.target.value;
+                        const base = makeGauge(nextType);
+                        updateGauge(selectedGauge.id, {
+                          ...base,
+                          id: selectedGauge.id,
+                          name: selectedGauge.name,
+                          x: selectedGauge.x,
+                          y: selectedGauge.y,
+                          zIndex: selectedGauge.zIndex,
+                        });
+                      }}
+                      className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
+                    >
+                      <option value="speedometer">Speedometer</option>
+                      <option value="rpm">RPM</option>
+                      <option value="small">Small</option>
+                    </select>
+                  </div>
+
+                  {selectedGauge.type === "small" && (
+                    <div>
+                      <label className="mb-2 block text-sm text-slate-300">
+                        Small gauge preset
+                      </label>
+                      <select
+                        value={selectedGauge.variant || "oil"}
+                        onChange={(e) => {
+                          const variant = e.target.value;
+                          updateGauge(selectedGauge.id, {
+                            ...SMALL_VARIANTS[variant],
+                            variant,
+                            name: variant[0].toUpperCase() + variant.slice(1),
+                          });
+                        }}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
+                      >
+                        <option value="oil">Oil</option>
+                        <option value="water">Water</option>
+                        <option value="volts">Volts</option>
+                        <option value="fuel">Fuel</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <NumberField
+                      label="Value"
+                      value={selectedGauge.value}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, {
+                          value: v,
+                          unitText:
+                            selectedGauge.type === "speedometer"
+                              ? `${Math.round(v)} MPH`
+                              : selectedGauge.unitText,
+                        })
+                      }
+                    />
+                    <TextField
+                      label="Unit text"
+                      value={selectedGauge.unitText}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { unitText: v })
+                      }
+                    />
+                    <NumberField
+                      label="Min"
+                      value={selectedGauge.min}
+                      onChange={(v) => updateGauge(selectedGauge.id, { min: v })}
+                    />
+                    <NumberField
+                      label="Max"
+                      value={selectedGauge.max}
+                      onChange={(v) => updateGauge(selectedGauge.id, { max: v })}
+                    />
+                    <NumberField
+                      label="Scale"
+                      step={0.05}
+                      value={selectedGauge.scale}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, {
+                          scale: Math.max(0.35, v),
+                        })
+                      }
+                    />
+                    <NumberField
+                      label="Z Index"
+                      value={selectedGauge.zIndex}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { zIndex: v })
+                      }
+                    />
+                  </div>
+
+                  <TextField
+                    label="Major labels (comma separated)"
+                    value={selectedGauge.majorLabels.join(",")}
+                    onChange={(v) =>
+                      updateGauge(selectedGauge.id, {
+                        majorLabels: v
+                          .split(",")
+                          .map((x) => x.trim())
+                          .filter(Boolean)
+                          .map((x) =>
+                            Number.isNaN(Number(x)) ? x : Number(x)
+                          ),
+                      })
+                    }
+                  />
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <NumberField
+                      label="Start angle"
+                      value={selectedGauge.startAngle}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { startAngle: v })
+                      }
+                    />
+                    <NumberField
+                      label="End angle"
+                      value={selectedGauge.endAngle}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { endAngle: v })
+                      }
+                    />
+                    <NumberField
+                      label="Radius"
+                      value={selectedGauge.radius}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { radius: v })
+                      }
+                    />
+                    <NumberField
+                      label="Number radius"
+                      value={selectedGauge.numberRadius}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { numberRadius: v })
+                      }
+                    />
+                    <NumberField
+                      label="Needle length"
+                      value={selectedGauge.needleLength}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { needleLength: v })
+                      }
+                    />
+                    <NumberField
+                      label="Needle width"
+                      step={0.5}
+                      value={selectedGauge.needleWidth}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { needleWidth: v })
+                      }
+                    />
+                    <NumberField
+                      label="Needle back"
+                      value={selectedGauge.needleBackLength}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { needleBackLength: v })
+                      }
+                    />
+                    <NumberField
+                      label="Hub radius"
+                      value={selectedGauge.hubRadius}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { hubRadius: v })
+                      }
+                    />
+                    <NumberField
+                      label="Major tick outer"
+                      value={selectedGauge.majorTickOuter}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { majorTickOuter: v })
+                      }
+                    />
+                    <NumberField
+                      label="Major tick inner"
+                      value={selectedGauge.majorTickInner}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { majorTickInner: v })
+                      }
+                    />
+                    <NumberField
+                      label="Minor tick outer"
+                      value={selectedGauge.minorTickOuter}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { minorTickOuter: v })
+                      }
+                    />
+                    <NumberField
+                      label="Minor tick inner"
+                      value={selectedGauge.minorTickInner}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { minorTickInner: v })
+                      }
+                    />
+                    <NumberField
+                      label="Major tick width"
+                      step={0.5}
+                      value={selectedGauge.majorTickWidth}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { majorTickWidth: v })
+                      }
+                    />
+                    <NumberField
+                      label="Minor tick width"
+                      step={0.5}
+                      value={selectedGauge.minorTickWidth}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { minorTickWidth: v })
+                      }
+                    />
+                    <NumberField
+                      label="Label size"
+                      value={selectedGauge.labelFontSize}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { labelFontSize: v })
+                      }
+                    />
+                    <NumberField
+                      label="Number size"
+                      value={selectedGauge.numberFontSize}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { numberFontSize: v })
+                      }
+                    />
+                    <NumberField
+                      label="Unit size"
+                      value={selectedGauge.unitFontSize}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { unitFontSize: v })
+                      }
+                    />
+                    <NumberField
+                      label="Label offset Y"
+                      value={selectedGauge.labelOffsetY}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { labelOffsetY: v })
+                      }
+                    />
+                    <NumberField
+                      label="Unit offset Y"
+                      value={selectedGauge.unitOffsetY}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { unitOffsetY: v })
+                      }
+                    />
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                    <label className="mb-3 flex items-center gap-3 text-sm text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={selectedGauge.showOdometer}
+                        onChange={(e) =>
+                          updateGauge(selectedGauge.id, {
+                            showOdometer: e.target.checked,
+                          })
+                        }
+                      />
+                      Show odometer box
+                    </label>
+
+                    {selectedGauge.showOdometer && (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <TextField
+                          label="Odometer text"
+                          value={selectedGauge.odometerText}
+                          onChange={(v) =>
+                            updateGauge(selectedGauge.id, {
+                              odometerText: v,
+                            })
+                          }
+                        />
+                        <NumberField
+                          label="Odo width"
+                          value={selectedGauge.odometerWidth}
+                          onChange={(v) =>
+                            updateGauge(selectedGauge.id, {
+                              odometerWidth: v,
+                            })
+                          }
+                        />
+                        <NumberField
+                          label="Odo height"
+                          value={selectedGauge.odometerHeight}
+                          onChange={(v) =>
+                            updateGauge(selectedGauge.id, {
+                              odometerHeight: v,
+                            })
+                          }
+                        />
+                        <NumberField
+                          label="Odo offset X"
+                          value={selectedGauge.odometerOffsetX}
+                          onChange={(v) =>
+                            updateGauge(selectedGauge.id, {
+                              odometerOffsetX: v,
+                            })
+                          }
+                        />
+                        <NumberField
+                          label="Odo offset Y"
+                          value={selectedGauge.odometerOffsetY}
+                          onChange={(v) =>
+                            updateGauge(selectedGauge.id, {
+                              odometerOffsetY: v,
+                            })
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <ColorField
+                      label="Face color"
+                      value={selectedGauge.faceColor}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { faceColor: v })
+                      }
+                    />
+                    <ColorField
+                      label="Border color"
+                      value={selectedGauge.borderColor}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { borderColor: v })
+                      }
+                    />
+                    <ColorField
+                      label="Tick color"
+                      value={selectedGauge.tickColor}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { tickColor: v })
+                      }
+                    />
+                    <ColorField
+                      label="Minor tick color"
+                      value={selectedGauge.minorTickColor}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { minorTickColor: v })
+                      }
+                    />
+                    <ColorField
+                      label="Needle color"
+                      value={selectedGauge.needleColor}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { needleColor: v })
+                      }
+                    />
+                    <ColorField
+                      label="Hub color"
+                      value={selectedGauge.hubColor}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { hubColor: v })
+                      }
+                    />
+                    <ColorField
+                      label="Text color"
+                      value={selectedGauge.textColor}
+                      onChange={(v) =>
+                        updateGauge(selectedGauge.id, { textColor: v })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={resetLayout}
+                      className="rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold"
+                    >
+                      Reset layout
+                    </button>
+                    <button
+                      onClick={() => setActivePage("export")}
+                      className="rounded-xl bg-emerald-300 px-4 py-3 text-sm font-semibold text-slate-950"
+                    >
+                      View JSON
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.aside>
+          </div>
+        )}
+
+        {activePage === "export" && (
+          <div className="mx-auto max-w-[1200px] px-6 py-6">
+            <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.2em] text-cyan-300/80">
+                    Export
+                  </p>
+                  <h2 className="mt-1 text-2xl font-black">Dashboard JSON</h2>
+                </div>
+
+                <button
+                  onClick={() => navigator.clipboard.writeText(exportJson)}
+                  className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900"
+                >
+                  Copy JSON
+                </button>
+              </div>
+
+              <textarea
+                readOnly
+                value={exportJson}
+                className="h-[700px] w-full rounded-2xl border border-white/10 bg-slate-950/80 p-4 font-mono text-sm text-white outline-none"
+              />
             </div>
           </div>
-        </motion.section>
+        )}
       </main>
     </div>
   );
