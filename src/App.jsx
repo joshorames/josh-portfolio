@@ -185,13 +185,25 @@ export default function App() {
 
         {activePage === "home" && (
           <div className="mx-auto max-w-[1400px] px-6 py-8">
-            <section className="rounded-[32px] border border-white/10 bg-white/5 p-8 md:p-12">
-              <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-                <div>
+            
+                  <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl lg:text-7xl">
+                    From Concepts
+                    <span className="block bg-gradient-to-r from-emerald-300 via-cyan-300 to-orange-300 bg-clip-text text-transparent">
+                      To Real-World Hardware
+                    </span>
+                  </h1>
                   <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-200">
                     <span className="h-2 w-2 rounded-full bg-emerald-300 animate-pulse" />
                     Available for projects and opportunities
                   </div>
+
+      <div className=" sectionheader block bg-gradient-to-r from-emerald-300 via-cyan-300 to-orange-300 bg-clip-text text-transparent">Software + Hardware</div>
+            <section className="rounded-[32px] border border-white/10 bg-white/5 p-8 md:p-12">
+            
+              <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+                
+                <div className="buttonarea">
+                  
 
                   {/* <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl lg:text-7xl">
                     I build
@@ -234,6 +246,134 @@ export default function App() {
                     A configurable dashboard system with draggable gauges,
                     custom styling, and saved layouts. The builder page lets you
                     experiment with a web version directly in the browser.
+                  </p>
+                   <p className="mt-3 text-sm leading-6 text-slate-300">
+                    <img src="gauges.png" alt="Girl in a jacket" width="500" height="600"/>
+                  </p>
+                </div>
+              </div>
+            </section>
+             <section className="rounded-[32px] border border-white/10 bg-white/5 p-8 md:p-12">
+            
+              <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+                
+                <div className="buttonarea">
+                
+                  <div className="mt-8 flex flex-wrap gap-4">
+                     <a
+                      href="https://github.com/joshorames"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg transition hover:-translate-y-0.5"
+                    >
+                      View Github
+                    </a>
+
+                    <a
+                      href="https://github.com/joshorames/RFID-Home-Assistant"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                    >
+                      View RFID Home Assistant
+                    </a>
+                  </div>
+                </div>
+
+                <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5">
+                  <p className="mt-3 text-2xl font-bold text-white">
+                    RFID Home Assistant
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                    A home assistant that you can program RFID to do smart home tasksw through Alexa using virtual doorbells. Also shows hardware config and other information on how to create.
+                  </p>
+                   <p className="mt-3 text-sm leading-6 text-slate-300">
+                    <img src="scanner.png" width="500" height="600"/>
+                  </p>
+                </div>
+              </div>
+            </section>
+             <div className=" sectionheader block bg-gradient-to-r from-emerald-300 via-cyan-300 to-orange-300 bg-clip-text text-transparent">3D Printing</div>
+            
+            <section className="rounded-[32px] border border-white/10 bg-white/5 p-8 md:p-12">
+            
+              <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+                
+                <div className="buttonarea">
+                
+                  <div className="mt-8 flex flex-wrap gap-4">
+                     <a
+                      href="https://makerworld.com/en/models/2408266-simple-fast-printing-hydroponics#profileId-2640245"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg transition hover:-translate-y-0.5"
+                    >
+                      View MakerWorld Profile
+                    </a>
+
+                    <a
+                      href="https://makerworld.com/en/models/2408266-simple-fast-printing-hydroponics#profileId-2640245"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                    >
+                      View Print
+                    </a>
+                  </div>
+                </div>
+
+                <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5">
+    
+                  <p className="mt-3 text-2xl font-bold text-white">
+                    Simple 3D Printable Hydroponics
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                    A 3D printable hydroponics system that allows fot plants to grow with only water and nutrients
+                  </p>
+                   <p className="mt-3 text-sm leading-6 text-slate-300">
+                    <img src="hydro.png" width="500" height="600"/>
+                  </p>
+                </div>
+              </div>
+            </section>
+            
+             <div className=" sectionheader block bg-gradient-to-r from-emerald-300 via-cyan-300 to-orange-300 bg-clip-text text-transparent">Platform‑Specific Development</div>
+            <section className="rounded-[32px] border border-white/10 bg-white/5 p-8 md:p-12">
+            
+              <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+                
+                <div className="buttonarea">
+                
+                  <div className="mt-8 flex flex-wrap gap-4">
+                     <a
+                      href="https://apps.garmin.com/developer/bcc96b21-7f38-4521-8a52-1b806ee92971/apps"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg transition hover:-translate-y-0.5"
+                    >
+                      View Garmin Profile
+                    </a>
+
+                    <a
+                      href="https://apps.garmin.com/apps/edb3bfa8-42fa-4700-9e84-95cebfc0c19d"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                    >
+                      View Garmin Watch Face
+                    </a>
+                  </div>
+                </div>
+
+                <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5">
+                  <p className="mt-3 text-2xl font-bold text-white">
+                    GrowFlower Garmin Watch Face
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                    A watch face that grows a flower while you walk while also showing your current weather conditions.
+                  </p>
+                   <p className="mt-3 text-sm leading-6 text-slate-300">
+                    <img src="Grow.png" width="500" height="600"/>
                   </p>
                 </div>
               </div>

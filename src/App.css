@@ -77,3 +77,15 @@ textarea {
 .glow-cyan {
   box-shadow: 0 0 24px rgba(34, 211, 238, 0.2);
 }
+
+.buttonarea {
+ height: 100%
+}
+
+.sectionheader {
+    padding-bottom: 1%;
+    padding-left: 3%;
+    font-size: 2vw;
+    font-style: italic;
+    font-weight: 900;
+}
