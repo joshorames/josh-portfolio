@@ -82,6 +82,16 @@ textarea {
  height: 100%
 }
 
+.display-buttons {
+ display: flex;
+}
+
+.display-carosel {
+ height: 67vh;
+    overflow: scroll;
+    overflow-x: hidden;
+}
+
 .sectionheader {
     padding-bottom: 1%;
     padding-left: 3%;
