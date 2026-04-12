@@ -99,3 +99,12 @@ textarea {
     font-style: italic;
     font-weight: 900;
 }
+
+.para {
+ font-size: x-large;
+}
+
+.paraHeader {
+font-size: xxx-large;
+    font-family: fantasy;
+}
